@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>결정 카드</title>
+<!--
+  결정 카드 — 파일 하나짜리 심플 버전 (서버·설치 없음)
+  쓰는 법
+   1) 아래 SPEC 을 AI 에게 채워 달라고 하세요. ("결정할 게 있으면 이 형식 JSON 으로 줘")
+   2) 이 파일을 브라우저로 엽니다.
+   3) 카드마다 안을 클릭하고, 필요하면 의견칸에 추가 요청을 적습니다.
+   4) [답 복사] → AI 채팅창에 붙여 넣으면 끝.
+  k_class: good(초록) / bad(빨강) / cost(주황). reco: true 면 초록 RECO 표시.
+-->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F7F9FC;--surface:#fff;--tint:#EEF2FA;--text:#111827;--muted:#6B7280;--border:#D9E1EE;
+--primary:#2563EB;--green:#059669;--amber:#D97706;--red:#DC2626;
+--font:"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;--r:8px}
+body{font-family:var(--font);font-size:15px;line-height:1.5;background:var(--bg);color:var(--text);
+padding:24px;max-width:8.5in;margin:0 auto 90px}
+.header{padding-bottom:16px;border-bottom:3px solid var(--primary);margin-bottom:16px}
+.header-title{font-size:23px;font-weight:700;letter-spacing:-.5px}
+.header-sub{font-size:13px;color:var(--muted);margin-top:4px}
+.intro{font-size:13px;color:var(--muted);margin-bottom:24px}
+.decision-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+margin-bottom:24px;overflow:hidden}
+.dc-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--tint);
+border-bottom:1px solid var(--border)}
+.dc-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;
+display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.dc-title{font-size:16px;font-weight:700;flex:1}
+.dc-chosen{font-size:11px;font-weight:800;color:var(--green);opacity:0;transition:opacity .2s}
+.dc-chosen.show{opacity:1}
+.dc-body{padding:12px 14px}
+.dc-situation{font-size:13.5px;margin-bottom:12px}
+.options{display:flex;gap:10px;flex-wrap:wrap}
+.option{flex:1;min-width:200px;border:2px solid var(--border);border-radius:var(--r);padding:10px 12px;
+background:var(--bg);cursor:pointer;transition:border-color .15s,background .15s,transform .08s}
+.option:hover{border-color:var(--primary)}.option:active{transform:scale(.99)}
+.option.reco{border-color:rgba(5,150,105,.4);background:rgba(5,150,105,.04)}
+.option.selected{border-color:var(--green);background:rgba(5,150,105,.12);box-shadow:0 0 0 3px rgba(5,150,105,.15)}
+.opt-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.opt-label{font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--muted)}
+.reco-tag{font-size:9px;font-weight:800;color:var(--green);background:rgba(5,150,105,.12);
+padding:1px 6px;border-radius:999px}
+.check{margin-left:auto;width:18px;height:18px;border-radius:50%;border:2px solid var(--border);
+flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
+.option.selected .check{background:var(--green);border-color:var(--green)}
+.opt-name{font-size:14px;font-weight:700;margin-bottom:6px}
+.opt-line{font-size:11.5px;margin:3px 0;display:flex;gap:6px}
+.opt-line .k{flex-shrink:0;font-size:9px;font-weight:700;text-transform:uppercase;padding:1px 6px;
+border-radius:4px;margin-top:2px}
+.k-good{background:rgba(5,150,105,.1);color:var(--green)}
+.k-bad{background:rgba(220,38,38,.1);color:var(--red)}
+.k-cost{background:rgba(217,119,6,.1);color:var(--amber)}
+.dc-reco{margin-top:10px;background:rgba(5,150,105,.07);border-left:3px solid var(--green);
+border-radius:4px;padding:7px 12px;font-size:12.5px}
+.dc-reco strong{color:var(--green)}
+.note-box{margin-bottom:24px}
+.note-box label{font-size:13px;font-weight:600;display:block;margin-bottom:6px}
+.note-box textarea{width:100%;min-height:60px;border:1px solid var(--border);border-radius:var(--r);
+padding:10px;font-family:var(--font);font-size:13px;resize:vertical}
+.bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);
+box-shadow:0 -4px 16px rgba(0,0,0,.06);padding:12px 20px;display:flex;align-items:center;gap:16px;z-index:10}
+.bar-status{flex:1;font-size:13px;color:var(--muted)}.bar-status strong{color:var(--text)}
+.btns{display:flex;gap:8px}
+.btn{border:none;border-radius:var(--r);padding:10px 18px;font-family:var(--font);font-size:14px;
+font-weight:700;cursor:pointer;transition:opacity .15s}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-ghost{background:var(--tint);color:var(--text)}.btn-primary{background:var(--primary);color:#fff}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--text);
+color:#fff;padding:12px 20px;border-radius:var(--r);font-size:14px;font-weight:600;opacity:0;
+transition:all .3s;z-index:20;max-width:90%}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.ok{background:var(--green)}.toast.err{background:var(--red)}
+
+.dc-note{margin-top:10px}.dc-note textarea{width:100%;min-height:44px;border:1px dashed var(--border);border-radius:var(--r);
+padding:8px 10px;font-family:var(--font);font-size:13px;resize:vertical;background:#fff}
+details.more{margin:0 0 12px;font-size:13px}details.more summary{cursor:pointer;color:var(--primary);font-weight:600}
+details.more div{margin-top:6px;white-space:pre-wrap;color:var(--text)}
+.opt-line .k{align-self:flex-start}
+body,.dc-situation,.opt-name,.opt-line{word-break:keep-all;overflow-wrap:anywhere}
+</style></head><body>
+<div class="toast" id="toast"></div>
+<header class="header"><div class="header-title" id="title"></div><div class="header-sub" id="sub"></div></header>
+<p class="intro"><span id="intro"></span> &nbsp;<strong>초록 RECO = AI 추천.</strong></p>
+<div id="cards"></div>
+<div class="note-box"><label for="note">메모 (선택)</label>
+<textarea id="note" placeholder="추천과 다르게 가거나 조건 달고 싶으면 여기"></textarea></div>
+<div class="bar"><div class="bar-status">선택: <strong id="count">0</strong>/<span id="total"></span> · <span id="picks">—</span></div>
+<div class="btns"><button class="btn btn-ghost" id="reco-btn" type="button">전부 추천대로</button>
+<button class="btn btn-primary" id="copy-btn" type="button" disabled>답 복사</button></div></div>
+
+<script id="spec" type="application/json">
+{
+  "title": "배포 전 결정 3건",
+  "subtitle": "개발 AI",
+  "intro": "카드마다 안을 클릭하고 [답 복사]를 눌러 채팅창에 붙여 넣으세요.",
+  "decisions": [
+    {"key": "1", "title": "막힌 배포를 어떻게 할까",
+     "situation": "배포가 서버 교체 직전 검사에서 멈췄습니다. 라이브는 옛 버전 그대로라 사용자 영향은 없습니다.",
+     "more": "검사가 지금 떠 있는 옛 버전까지 검사해서, 새 방식 도입 후 첫 배포는 항상 막히는 구조입니다.",
+     "reco_text": "A. 실제로 띄우는 버전만 검사하도록 고치면 바로 배포되고, 검사의 목적도 그대로 지킵니다.",
+     "options": [
+       {"label": "A", "name": "검사 고치고 지금 다시 배포", "reco": true,
+        "lines": [{"k": "좋은 점", "v": "오늘 안에 반영"}, {"k": "위험", "v": "함께 나가는 변경 전체가 바로 운영으로", "k_class": "bad"}]},
+       {"label": "B", "name": "검사만 고치고, 배포 시각은 내가 지정",
+        "lines": [{"k": "위험", "v": "그동안 브랜치와 라이브가 어긋난 채", "k_class": "bad"}]},
+       {"label": "C", "name": "담당에게 넘기고 기다림",
+        "lines": [{"k": "비용", "v": "담당 응답 시점에 달림", "k_class": "cost"}]}
+     ]},
+    {"key": "2", "title": "DB 변경 6건을 이번에 같이 적용할까",
+     "situation": "모두 칸을 추가하는 변경이고, 기존 데이터는 건드리지 않습니다.",
+     "options": [
+       {"label": "A", "name": "같이 적용", "reco": true, "lines": [{"k": "좋은 점", "v": "배포 한 번으로 끝"}]},
+       {"label": "B", "name": "다음 배포로 미룸", "lines": [{"k": "비용", "v": "새 기능 일부가 꺼진 채로 나감", "k_class": "cost"}]}
+     ]},
+    {"key": "3", "title": "배포 알림 문구",
+     "options": [
+       {"label": "A", "name": "\"배포 완료\"", "lines": [{"k": "좋은 점", "v": "짧다"}]},
+       {"label": "B", "name": "\"배포 완료 · 바뀐 것 3개\"", "reco": true, "lines": [{"k": "좋은 점", "v": "무엇이 바뀌었는지 바로 보임"}]}
+     ]}
+  ]
+}
+</script>
+<script>
+const S=JSON.parse(document.getElementById("spec").textContent);const answers={},RECO={};
+const $=id=>document.getElementById(id);const e=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n};
+$("title").textContent=S.title||"결정";$("sub").textContent=S.subtitle||"";$("intro").textContent=S.intro||"";
+document.title=S.title||"결정 카드";$("total").textContent=S.decisions.length;
+S.decisions.forEach(d=>{const card=e("div","decision-card");card.dataset.q=d.key;
+ const h=e("div","dc-head");h.append(e("div","dc-num",d.key),e("div","dc-title",d.title));const ch=e("div","dc-chosen");h.append(ch);card.append(h);
+ const b=e("div","dc-body");if(d.situation)b.append(e("p","dc-situation",d.situation));
+ if(d.more){const m=e("details","more");m.append(e("summary",null,"자세히"),e("div",null,d.more));b.append(m)}
+ const os=e("div","options");d.options.forEach(o=>{if(o.reco)RECO[d.key]=o.label;
+  const op=e("div","option"+(o.reco?" reco":""));op.dataset.opt=o.label;const top=e("div","opt-top");top.append(e("span","opt-label",o.label+"안"));
+  if(o.reco)top.append(e("span","reco-tag","RECO"));top.append(e("span","check"));op.append(top,e("div","opt-name",o.name));
+  (o.lines||[]).forEach(l=>{const r=e("div","opt-line");r.append(e("span","k k-"+(l.k_class||"good"),l.k),e("span",null,l.v));op.append(r)});
+  op.onclick=()=>pick(d.key,o.label);os.append(op)});b.append(os);
+ const n=e("div","dc-note");const ta=e("textarea");ta.placeholder="이 건에 대한 의견·추가 요청 (선택)";ta.dataset.q=d.key;n.append(ta);b.append(n);
+ if(d.reco_text)b.append(e("div","dc-reco",d.reco_text));card.append(b);$("cards").append(card)});
+function pick(q,opt){answers[q]=opt;document.querySelectorAll('.decision-card[data-q="'+q+'"] .option').forEach(el=>{const s=el.dataset.opt===opt;
+ el.classList.toggle("selected",s);el.querySelector(".check").textContent=s?"✓":""});
+ const c=document.querySelector('.decision-card[data-q="'+q+'"] .dc-chosen');c.textContent=opt+(opt===RECO[q]?" ✓추천":"");c.classList.add("show");refresh()}
+function refresh(){const ks=Object.keys(answers);$("count").textContent=ks.length;$("picks").textContent=ks.length?ks.map(k=>k+answers[k]).join(" "):"—";
+ $("copy-btn").disabled=ks.length<S.decisions.length}
+function answerText(){const out=["[결정] "+(S.title||"")];S.decisions.forEach(d=>{const o=d.options.find(x=>x.label===answers[d.key]);
+ let line=d.key+". "+d.title+" → "+answers[d.key]+"안("+(o?o.name:"")+")";const t=document.querySelector('textarea[data-q="'+d.key+'"]').value.trim();
+ if(t)line+=" / 의견: "+t;out.push(line)});const n=$("note").value.trim();if(n)out.push("메모: "+n);return out.join("\n")}
+function toast(m,k){const t=$("toast");t.textContent=m;t.className="toast show "+(k||"");setTimeout(()=>{t.className="toast "+(k||"")},2600)}
+$("reco-btn").onclick=()=>{Object.keys(RECO).forEach(q=>pick(q,RECO[q]));toast("추천대로 선택했어요. [답 복사]만 누르면 됩니다.","ok")};
+$("copy-btn").onclick=async()=>{const txt=answerText();try{await navigator.clipboard.writeText(txt);toast("복사했어요. 채팅창에 붙여 넣으세요.","ok")}
+ catch(_){prompt("아래 내용을 복사해 붙여 넣으세요",txt)}};
+window.decisionAnswerText=answerText;
+</script></body></html>
