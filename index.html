@@ -7,6 +7,7 @@
    2) 이 파일을 브라우저로 엽니다.
    3) 카드마다 안을 클릭하고, 필요하면 의견칸에 추가 요청을 적습니다.
    4) [답 복사] → AI 채팅창에 붙여 넣으면 끝.
+   5) [제출하기]는 자리만 있습니다. 내 봇·서버로 바로 보내고 싶으면 아래 submit-btn 부분에 붙이세요.
   k_class: good(초록) / bad(빨강) / cost(주황). reco: true 면 초록 RECO 표시.
 -->
 <style>
@@ -87,7 +88,8 @@ body,.dc-situation,.opt-name,.opt-line{word-break:keep-all;overflow-wrap:anywher
 <textarea id="note" placeholder="추천과 다르게 가거나 조건 달고 싶으면 여기"></textarea></div>
 <div class="bar"><div class="bar-status">선택: <strong id="count">0</strong>/<span id="total"></span> · <span id="picks">—</span></div>
 <div class="btns"><button class="btn btn-ghost" id="reco-btn" type="button">전부 추천대로</button>
-<button class="btn btn-primary" id="copy-btn" type="button" disabled>답 복사</button></div></div>
+<button class="btn btn-primary" id="copy-btn" type="button" disabled>답 복사</button>
+<button class="btn btn-primary" id="submit-btn" type="button" disabled>제출하기</button></div></div>
 
 <script id="spec" type="application/json">
 {
@@ -141,7 +143,7 @@ function pick(q,opt){answers[q]=opt;document.querySelectorAll('.decision-card[da
  el.classList.toggle("selected",s);el.querySelector(".check").textContent=s?"✓":""});
  const c=document.querySelector('.decision-card[data-q="'+q+'"] .dc-chosen');c.textContent=opt+(opt===RECO[q]?" ✓추천":"");c.classList.add("show");refresh()}
 function refresh(){const ks=Object.keys(answers);$("count").textContent=ks.length;$("picks").textContent=ks.length?ks.map(k=>k+answers[k]).join(" "):"—";
- $("copy-btn").disabled=ks.length<S.decisions.length}
+ $("copy-btn").disabled=ks.length<S.decisions.length;$("submit-btn").disabled=ks.length<S.decisions.length}
 function answerText(){const out=["[결정] "+(S.title||"")];S.decisions.forEach(d=>{const o=d.options.find(x=>x.label===answers[d.key]);
  let line=d.key+". "+d.title+" → "+answers[d.key]+"안("+(o?o.name:"")+")";const t=document.querySelector('textarea[data-q="'+d.key+'"]').value.trim();
  if(t)line+=" / 의견: "+t;out.push(line)});const n=$("note").value.trim();if(n)out.push("메모: "+n);return out.join("\n")}
@@ -149,5 +151,8 @@ function toast(m,k){const t=$("toast");t.textContent=m;t.className="toast show "
 $("reco-btn").onclick=()=>{Object.keys(RECO).forEach(q=>pick(q,RECO[q]));toast("추천대로 선택했어요. [답 복사]만 누르면 됩니다.","ok")};
 $("copy-btn").onclick=async()=>{const txt=answerText();try{await navigator.clipboard.writeText(txt);toast("복사했어요. 채팅창에 붙여 넣으세요.","ok")}
  catch(_){prompt("아래 내용을 복사해 붙여 넣으세요",txt)}};
+// 제출하기: 지금은 안내만 띄운다. 내 봇·서버로 답을 보내려면 여기에 붙이면 된다.
+//   예) fetch("내 주소", {method:"POST", body: answerText()})
+$("submit-btn").onclick=()=>{toast("제출되었습니다. (기능 구현 필요)","ok")};
 window.decisionAnswerText=answerText;
 </script></body></html>
