@@ -7,6 +7,7 @@
    2) 이 파일을 브라우저로 엽니다.
    3) 카드마다 안을 클릭하고, 필요하면 의견칸에 추가 요청을 적습니다.
    4) [답 복사] → AI 채팅창에 붙여 넣으면 끝.
+   0) 오른쪽 위 [HTML 다운로드]로 이 파일을 받아 마음대로 고쳐 쓰세요.
    5) [제출하기]는 자리만 있습니다. 내 봇·서버로 바로 보내고 싶으면 아래 submit-btn 부분에 붙이세요.
   k_class: good(초록) / bad(빨강) / cost(주황). reco: true 면 초록 RECO 표시.
 -->
@@ -81,7 +82,8 @@ details.more div{margin-top:6px;white-space:pre-wrap;color:var(--text)}
 body,.dc-situation,.opt-name,.opt-line{word-break:keep-all;overflow-wrap:anywhere}
 </style></head><body>
 <div class="toast" id="toast"></div>
-<header class="header"><div class="header-title" id="title"></div><div class="header-sub" id="sub"></div></header>
+<header class="header" style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1"><div class="header-title" id="title"></div><div class="header-sub" id="sub"></div></div>
+<a class="btn btn-ghost" id="dl-btn" href="index.html" download="decision-card.html" style="text-decoration:none;font-size:13px;padding:8px 14px;white-space:nowrap">HTML 다운로드</a></header>
 <p class="intro"><span id="intro"></span> &nbsp;<strong>초록 RECO = AI 추천.</strong></p>
 <div id="cards"></div>
 <div class="note-box"><label for="note">메모 (선택)</label>
@@ -154,5 +156,6 @@ $("copy-btn").onclick=async()=>{const txt=answerText();try{await navigator.clipb
 // 제출하기: 지금은 안내만 띄운다. 내 봇·서버로 답을 보내려면 여기에 붙이면 된다.
 //   예) fetch("내 주소", {method:"POST", body: answerText()})
 $("submit-btn").onclick=()=>{toast("제출되었습니다. (기능 구현 필요)","ok")};
+if(location.protocol==="file:"){const d=$("dl-btn");d.href=URL.createObjectURL(new Blob(["<!DOCTYPE html>\n"+document.documentElement.outerHTML],{type:"text/html"}));}
 window.decisionAnswerText=answerText;
 </script></body></html>
